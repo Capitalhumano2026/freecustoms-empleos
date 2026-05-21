@@ -66,10 +66,23 @@ function App() {
     const nombre = form.nombre.value;
     const telefono = form.telefono.value;
     const linkedin = form.linkedin.value;
+    const cvFile = form.cv.files[0];
+    let cv_url = null;
+    let cv_nombre = null;
+    if (cvFile) {
+      const ext = cvFile.name.split('.').pop();
+      const fileName = `${Date.now()}.${ext}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage.from('cvs').upload(fileName, cvFile);
+      if (!uploadError) {
+        const { data: urlData } = supabase.storage.from('cvs').getPublicUrl(fileName);
+        cv_url = urlData.publicUrl;
+        cv_nombre = cvFile.name;
+      }
+    }
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) { setMsg(error.message); setLoading(false); return; }
     if (data.user) {
-      await supabase.from('perfiles').upsert({ id: data.user.id, nombre, email, telefono, linkedin });
+      await supabase.from('perfiles').upsert({ id: data.user.id, nombre, email, telefono, linkedin, cv_url, cv_nombre });
       setUser(data.user);
       setPerfil({ nombre, email, telefono, linkedin });
     }
@@ -201,37 +214,49 @@ function App() {
     );
   }
 
-  function PantallaLogin() {
-    const [modo, setModo] = useState('registro');
+function PantallaLogin() {
+    const [modo, setModo] = useState('login');
     return (
       <div>
         <div className="back-btn" onClick={()=>setDetail(null)}>← Volver</div>
         <div style={{textAlign:'center',marginBottom:20}}>
           <div style={{width:52,height:52,background:'#E1F0F7',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 10px',fontSize:24}}>👤</div>
-          <p style={{fontSize:16,fontWeight:500}}>{modo==='registro'?'Crear cuenta':'Iniciar sesión'}</p>
+          <p style={{fontSize:16,fontWeight:500}}>{modo==='registro'?'Crear cuenta':modo==='olvide'?'Recuperar contraseña':'Iniciar sesión'}</p>
         </div>
-        {msg && <p style={{color:'red',fontSize:12,marginBottom:10,textAlign:'center'}}>{msg}</p>}
-        {modo === 'registro'
+        {msg && <p style={{color:msg.startsWith('✓')?'#0D3D5C':'red',fontSize:12,marginBottom:10,textAlign:'center'}}>{msg}</p>}
+        {modo==='registro'
           ? <form onSubmit={registrarse}>
               <div className="input-group"><label>Nombre completo</label><input name="nombre" required placeholder="Ej: María González" /></div>
               <div className="input-group"><label>Email</label><input name="email" type="email" required placeholder="tu@email.com" /></div>
               <div className="input-group"><label>Contraseña</label><input name="password" type="password" required placeholder="Mínimo 8 caracteres" /></div>
               <div className="input-group"><label>Teléfono (opcional)</label><input name="telefono" placeholder="+54 11..." /></div>
               <div className="input-group"><label>LinkedIn (opcional)</label><input name="linkedin" placeholder="linkedin.com/in/tu-perfil" /></div>
+              <div className="input-group"><label>CV (PDF o JPG)</label><input name="cv" type="file" accept=".pdf,.jpg,.jpeg" /></div>
               <button className="btn btn-primary btn-block" type="submit" disabled={loading}>{loading?'Creando cuenta...':'Crear cuenta'}</button>
               <p style={{fontSize:12,color:'var(--color-text-secondary)',textAlign:'center',marginTop:12}}>¿Ya tenés cuenta? <span style={{color:'#0D3D5C',cursor:'pointer',fontWeight:500}} onClick={()=>setModo('login')}>Iniciar sesión</span></p>
             </form>
-          : <form onSubmit={iniciarSesion}>
+          : modo==='login'
+          ? <form onSubmit={iniciarSesion}>
               <div className="input-group"><label>Email</label><input name="email" type="email" required placeholder="tu@email.com" /></div>
               <div className="input-group"><label>Contraseña</label><input name="password" type="password" required placeholder="Tu contraseña" /></div>
               <button className="btn btn-primary btn-block" type="submit" disabled={loading}>{loading?'Ingresando...':'Iniciar sesión'}</button>
               <p style={{fontSize:12,color:'var(--color-text-secondary)',textAlign:'center',marginTop:12}}>¿No tenés cuenta? <span style={{color:'#0D3D5C',cursor:'pointer',fontWeight:500}} onClick={()=>setModo('registro')}>Registrarme</span></p>
+              <p style={{fontSize:12,color:'#0D3D5C',textAlign:'center',marginTop:8,cursor:'pointer'}} onClick={()=>setModo('olvide')}>Olvidé mi contraseña</p>
+            </form>
+          : <form onSubmit={async(e)=>{
+              e.preventDefault();
+              const email=e.target.email.value;
+              const {error}=await supabase.auth.resetPasswordForEmail(email,{redirectTo:'https://freecustoms-empleos.netlify.app'});
+              setMsg(error?'Error al enviar el email':'✓ Te enviamos un email para restablecer tu contraseña');
+            }}>
+              <div className="input-group"><label>Email</label><input name="email" type="email" required placeholder="tu@email.com" /></div>
+              <button className="btn btn-primary btn-block" type="submit">Enviar email de recuperación</button>
+              <p style={{fontSize:12,color:'var(--color-text-secondary)',textAlign:'center',marginTop:12}}>¿Ya recordaste? <span style={{color:'#0D3D5C',cursor:'pointer',fontWeight:500}} onClick={()=>setModo('login')}>Iniciar sesión</span></p>
             </form>
         }
       </div>
     );
   }
-
   function PantallaPostulaciones() {
     if (!user) return <div className="empty"><p style={{fontSize:14,fontWeight:500,marginBottom:6}}>Necesitás iniciar sesión</p><button className="btn btn-primary" onClick={()=>setDetail({type:'login'})}>Registrarme</button></div>;
     if (!postulaciones.length) return <div className="empty"><p style={{fontSize:14}}>Todavía no te postulaste a ninguna búsqueda.</p></div>;
