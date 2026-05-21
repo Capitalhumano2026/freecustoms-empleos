@@ -29,9 +29,9 @@ function App() {
     });
   }, []);
 
-  useEffect(() => {
+useEffect(() => {
     if (user) { cargarPostulaciones(); }
-  }, [user]);
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (role === 'hr') cargarCandidatosHR();
