@@ -29,9 +29,9 @@ function App() {
     });
   }, []);
 
-useEffect(() => {
+  useEffect(() => {
     if (user) { cargarPostulaciones(); }
-  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user]);
 
   useEffect(() => {
     if (role === 'hr') cargarCandidatosHR();
@@ -407,9 +407,7 @@ useEffect(() => {
       <div className="app">
         <div className="topbar">
           <img src="/logo_free.jpg" alt="Free Customs" style={{height:38,objectFit:'contain'}} />
-          <button className="topbar-role" onClick={()=>{setRole(r=>r==='candidato'?'hr':'candidato');setDetail(null);}}>
-            {role==='candidato'?'Panel RRHH':'Portal candidato'}
-          </button>
+{esHR && <button className="topbar-role" onClick={()=>{setRole(r=>r==='candidato'?'hr':'candidato');setDetail(null);}}>{role==='candidato'?'Panel RRHH':'Portal candidato'}</button>}
         </div>
         <div className="accent-bar"></div>
         <div className="nav-tabs">
