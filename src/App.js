@@ -279,13 +279,9 @@ function App() {
                 {estadoBadge(p.estado)}
               </div>
               <ul className="timeline">
-                {steps.map((st,i)=>{
-                  let dc = i<idx?'done':i===idx&&p.estado!=='descartado'?'active':p.estado==='descartado'&&st.key==='descartado'?'rejected':'pending';
-                  {st.key==='entrevista'&&p.fecha_entrevista&&<div style={{marginTop:3}}>
-  <span style={{fontSize:11,color:'#185A80',display:'block'}}>{new Date(p.fecha_entrevista).toLocaleString('es-AR')} · {p.modalidad_entrevista}</span>
-  {p.entrevistador&&<span style={{fontSize:11,color:'#6b7280',display:'block'}}>Con: {p.entrevistador}</span>}
-  {p.link_entrevista&&<a href={p.link_entrevista} target="_blank" rel="noreferrer" style={{fontSize:11,color:'#0A66C2',display:'block'}}>🔗 Unirse a la reunión</a>}
-</div>}
+{steps.map((st,i)=>{
+                  const dc = i<idx?'done':i===idx&&p.estado!=='descartado'?'active':p.estado==='descartado'&&st.key==='descartado'?'rejected':'pending';
+                  return <li key={st.key}><div className={`tl-dot ${dc}`}>{dc==='done'?'✓':dc==='active'?'●':dc==='rejected'?'✕':'○'}</div><div><p style={{fontSize:13,fontWeight:500,color:dc==='pending'?'#6b7280':'#1a1a1a'}}>{st.label}</p>{st.key==='entrevista'&&p.fecha_entrevista&&<div style={{marginTop:3}}><span style={{fontSize:11,color:'#185A80',display:'block'}}>{new Date(p.fecha_entrevista).toLocaleString('es-AR')} · {p.modalidad_entrevista}</span>{p.entrevistador&&<span style={{fontSize:11,color:'#6b7280',display:'block'}}>Con: {p.entrevistador}</span>}{p.link_entrevista&&<a href={p.link_entrevista} target="_blank" rel="noreferrer" style={{fontSize:11,color:'#0A66C2',display:'block'}}>🔗 Unirse a la reunión</a>}</div>}</div></li>;
                 })}
               </ul>
             </div>
