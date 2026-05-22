@@ -181,7 +181,7 @@ setDetail(null);
       </div>
     );
   }
-function PantallaVacantes() {
+  function PantallaVacantes() {
     return (
       <div>
         <input placeholder="Buscar vacantes..." style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'0.5px solid #d1d5db',fontSize:13,marginBottom:12,fontFamily:'inherit'}} />
