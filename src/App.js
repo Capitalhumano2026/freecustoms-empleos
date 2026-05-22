@@ -181,7 +181,32 @@ setDetail(null);
       </div>
     );
   }
-
+function PantallaVacantes() {
+    return (
+      <div>
+        <input placeholder="Buscar vacantes..." style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'0.5px solid #d1d5db',fontSize:13,marginBottom:12,fontFamily:'inherit'}} />
+        <div className="filter-chips">
+          {['Todas',...AREAS].map(a=><span key={a} className={`chip ${filtroArea===a?'active':''}`} onClick={()=>setFiltroArea(a)}>{a}</span>)}
+        </div>
+        <p className="section-title">{filtradas.length} búsqueda{filtradas.length!==1?'s':''} activa{filtradas.length!==1?'s':''}</p>
+        {filtradas.map(v=>(
+          <div key={v.id} className="card" style={{cursor:'pointer'}} onClick={()=>setDetail({type:'vacante',data:v})}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+              <p className="job-title">{v.titulo}</p>{estadoBadge(v.estado)}
+            </div>
+            <div className="job-meta">
+              <span>🏢 {v.area}</span><span>📍 {v.modalidad}</span><span>⏰ {v.jornada}</span>
+            </div>
+            <p style={{fontSize:12,color:'#6b7280',lineHeight:1.5}}>{v.descripcion?.substring(0,90)}…</p>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:10}}>
+              <span style={{fontSize:11,color:'#6b7280'}}>{v.postulantes} postulantes</span>
+              <span style={{fontSize:12,color:'#0D3D5C',fontWeight:500}}>Ver más →</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
   function PantallaVacanteDetalle({ v }) {
     const yaPostulado = postulaciones.some(p => p.vacante_id === v.id);
     return (
