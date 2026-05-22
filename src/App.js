@@ -449,7 +449,7 @@ function App() {
               await supabase.from('postulaciones').update({ fecha_entrevista: fecha, modalidad_entrevista: modalidad, link_entrevista, entrevistador }).eq('id', c.id);
               alert('✓ Entrevista guardada. El candidato verá los detalles en su perfil.');
               await cargarCandidatosHR();
-            }}>Guardar y notificar</button>
+            }}>Guardar y notificar</button></>
           )}
         </div>
         <div className="card">
