@@ -55,7 +55,7 @@ function App() {
   }
 
   async function cargarPostulaciones() {
-    const { data } = await supabase.from('postulaciones').select('*, vacantes(titulo, area)').eq('candidato_id', user.id);
+    const { data } = await supabase.from('postulaciones').select('*, vacantes(titulo, area), fecha_entrevista, modalidad_entrevista, link_entrevista, entrevistador').eq('candidato_id', user.id);
     if (data) setPostulaciones(data);
   }
 
@@ -281,7 +281,11 @@ function App() {
               <ul className="timeline">
                 {steps.map((st,i)=>{
                   let dc = i<idx?'done':i===idx&&p.estado!=='descartado'?'active':p.estado==='descartado'&&st.key==='descartado'?'rejected':'pending';
-                  return <li key={st.key}><div className={`tl-dot ${dc}`}>{dc==='done'?'✓':dc==='active'?'●':dc==='rejected'?'✕':'○'}</div><div><p style={{fontSize:13,fontWeight:500,color:dc==='pending'?'#6b7280':'#1a1a1a'}}>{st.label}</p>{st.key==='entrevista'&&p.fecha_entrevista&&<span style={{fontSize:11,color:'#185A80'}}>{new Date(p.fecha_entrevista).toLocaleString('es-AR')}</span>}</div></li>;
+                  {st.key==='entrevista'&&p.fecha_entrevista&&<div style={{marginTop:3}}>
+  <span style={{fontSize:11,color:'#185A80',display:'block'}}>{new Date(p.fecha_entrevista).toLocaleString('es-AR')} · {p.modalidad_entrevista}</span>
+  {p.entrevistador&&<span style={{fontSize:11,color:'#6b7280',display:'block'}}>Con: {p.entrevistador}</span>}
+  {p.link_entrevista&&<a href={p.link_entrevista} target="_blank" rel="noreferrer" style={{fontSize:11,color:'#0A66C2',display:'block'}}>🔗 Unirse a la reunión</a>}
+</div>}
                 })}
               </ul>
             </div>
@@ -425,19 +429,27 @@ function App() {
 {c.estado==='entrevista' && (
             <><hr className="divider" />
             <div className="input-group"><label>Fecha y hora</label><input id={`fecha-${c.id}`} type="datetime-local" defaultValue={c.fecha_entrevista?c.fecha_entrevista.slice(0,16):''} /></div>
-            <div className="input-group"><label>Modalidad</label>
+ <div className="input-group"><label>Modalidad</label>
               <select id={`modal-${c.id}`} defaultValue={c.modalidad_entrevista||'Zoom'}>
-                <option>Zoom</option><option>Presencial</option><option>Teléfono</option>
+                <option>Zoom</option><option>Google Meet</option><option>Presencial</option><option>Teléfono</option>
               </select>
+            </div>
+            <div className="input-group"><label>Link de la reunión (opcional)</label>
+              <input id={`link-${c.id}`} placeholder="https://meet.google.com/..." defaultValue={c.link_entrevista||''} />
+            </div>
+            <div className="input-group"><label>Entrevistador/a de Free Customs</label>
+              <input id={`entrev-${c.id}`} placeholder="Ej: Daniel Cortez" defaultValue={c.entrevistador||''} />
             </div>
             <button className="btn btn-sm btn-primary" onClick={async()=>{
               const fecha = document.getElementById(`fecha-${c.id}`).value;
               const modalidad = document.getElementById(`modal-${c.id}`).value;
+              const link_entrevista = document.getElementById(`link-${c.id}`).value;
+              const entrevistador = document.getElementById(`entrev-${c.id}`).value;
               if (!fecha) { alert('Ingresá la fecha y hora'); return; }
-              await supabase.from('postulaciones').update({ fecha_entrevista: fecha, modalidad_entrevista: modalidad }).eq('id', c.id);
-              alert('✓ Entrevista guardada. El candidato verá la fecha en su perfil.');
+              await supabase.from('postulaciones').update({ fecha_entrevista: fecha, modalidad_entrevista: modalidad, link_entrevista, entrevistador }).eq('id', c.id);
+              alert('✓ Entrevista guardada. El candidato verá los detalles en su perfil.');
               await cargarCandidatosHR();
-            }}>Guardar y notificar</button></>
+            }}>Guardar y notificar</button>
           )}
         </div>
         <div className="card">
