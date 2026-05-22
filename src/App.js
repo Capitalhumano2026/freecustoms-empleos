@@ -130,10 +130,21 @@ function App() {
     await supabase.from('postulaciones').update({ notas: nota }).eq('id', postulacionId);
   }
 
-  async function guardarPerfil(e) {
+async function guardarPerfil(e) {
     e.preventDefault();
     const form = e.target;
     const updates = { id: user.id, nombre: form.nombre.value, telefono: form.telefono.value, linkedin: form.linkedin.value };
+    const cvFile = form.cv.files[0];
+    if (cvFile) {
+      const ext = cvFile.name.split('.').pop();
+      const fileName = `${user.id}_${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from('cvs').upload(fileName, cvFile);
+      if (!uploadError) {
+        const { data: urlData } = supabase.storage.from('cvs').getPublicUrl(fileName);
+        updates.cv_url = urlData.publicUrl;
+        updates.cv_nombre = cvFile.name;
+      }
+    }
     await supabase.from('perfiles').upsert(updates);
     setPerfil(p => ({ ...p, ...updates }));
     setMsg('✓ Perfil actualizado');
@@ -151,6 +162,8 @@ function App() {
     if (!error) { await cargarVacantes(); setDetail(null); setHrPage('busquedas'); }
   }
 
+  const HR_EMAILS = ['rrhh@freecustoms.com.ar', 'tarriagada@freecustoms.com'];
+  const esHR = user && HR_EMAILS.includes(user.email);
   const filtradas = filtroArea === 'Todas' ? vacantes : vacantes.filter(v => v.area === filtroArea);
   const filtradosHR = filtroArea === 'Todas' ? candidatosHR : candidatosHR.filter(c => c.vacantes?.area === filtroArea);
 
@@ -296,10 +309,16 @@ function PantallaLogin() {
           <div><p style={{fontSize:15,fontWeight:500}}>{perfil?.nombre||user.email}</p><p style={{fontSize:12,color:'var(--color-text-secondary)'}}>{user.email}</p></div>
         </div>
         {msg && <p style={{color:'#0D3D5C',fontSize:12,marginBottom:10}}>{msg}</p>}
-        <form onSubmit={guardarPerfil}>
+<form onSubmit={guardarPerfil}>
           <div className="input-group"><label>Nombre completo</label><input name="nombre" defaultValue={perfil?.nombre||''} /></div>
           <div className="input-group"><label>Teléfono</label><input name="telefono" defaultValue={perfil?.telefono||''} /></div>
           <div className="input-group"><label>LinkedIn</label><input name="linkedin" defaultValue={perfil?.linkedin||''} placeholder="linkedin.com/in/tu-perfil" /></div>
+          <div className="input-group">
+            <label>CV (PDF o JPG)</label>
+            {perfil?.cv_nombre && <p style={{fontSize:12,color:'#0D3D5C',marginBottom:6}}>✓ Archivo actual: {perfil.cv_nombre}</p>}
+            <input name="cv" type="file" accept=".pdf,.jpg,.jpeg" />
+            <p style={{fontSize:11,color:'var(--color-text-secondary)',marginTop:4}}>Opcional — subí uno nuevo para reemplazar el actual</p>
+          </div>
           <button className="btn btn-primary btn-block" type="submit">Guardar cambios</button>
         </form>
         <button className="btn btn-block" style={{marginTop:10}} onClick={cerrarSesion}>Cerrar sesión</button>
@@ -420,6 +439,7 @@ function PantallaLogin() {
   }
 
   function renderHR() {
+    if (!esHR) return <div className="empty"><p style={{fontSize:14}}>Acceso no autorizado.</p></div>;
     if (detail?.type==='candidato_hr') return <PantallaCandidatoDetalle c={detail.data} />;
     if (detail?.type==='nueva_busqueda') return <PantallaNuevaBusqueda />;
     if (hrPage==='busquedas') return <PantallaBusquedasHR />;
