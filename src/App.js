@@ -362,19 +362,34 @@ function PantallaLogin() {
   }
 
   function PantallaNuevaBusqueda() {
+    const [tit, setTit] = React.useState('');
+    const [area, setArea] = React.useState(AREAS[0]);
+    const [mod, setMod] = React.useState('Presencial');
+    const [jor, setJor] = React.useState('Full time');
+    const [desc, setDesc] = React.useState('');
+    const [req, setReq] = React.useState('');
+
+    async function handlePublicar() {
+      if (!tit) { alert('Ingresá el título del puesto'); return; }
+      const requisitos = req.split('\n').map(r=>r.trim()).filter(Boolean);
+      const { error } = await supabase.from('vacantes').insert({
+        titulo: tit, area, modalidad: mod, jornada: jor, descripcion: desc, requisitos
+      });
+      if (error) { alert('Error: ' + error.message); }
+      else { await cargarVacantes(); setDetail(null); setHrPage('busquedas'); }
+    }
+
     return (
       <div>
         <div className="back-btn" onClick={()=>setDetail(null)}>← Volver</div>
         <p style={{fontSize:16,fontWeight:500,marginBottom:16}}>Nueva búsqueda</p>
-        <form onSubmit={publicarVacante}>
-          <div className="input-group"><label>Título del puesto</label><input name="titulo" required placeholder="Ej: Analista Comex" /></div>
-          <div className="input-group"><label>Área</label><select name="area">{AREAS.map(a=><option key={a}>{a}</option>)}</select></div>
-          <div className="input-group"><label>Modalidad</label><select name="modalidad"><option>Presencial</option><option>Híbrido</option><option>Remoto</option></select></div>
-          <div className="input-group"><label>Jornada</label><select name="jornada"><option>Full time</option><option>Part time</option></select></div>
-          <div className="input-group"><label>Descripción</label><textarea name="descripcion" placeholder="Describí las responsabilidades..."></textarea></div>
-          <div className="input-group"><label>Requisitos (uno por línea)</label><textarea name="requisitos" placeholder="Requisito 1&#10;Requisito 2"></textarea></div>
-          <button className="btn btn-primary btn-block" type="button" onClick={(e)=>{e.preventDefault();publicarVacante({preventDefault:()=>{},target:e.target.closest('form')})}}>Publicar búsqueda</button>
-        </form>
+        <div className="input-group"><label>Título del puesto</label><input value={tit} onChange={e=>setTit(e.target.value)} placeholder="Ej: Analista Comex" /></div>
+        <div className="input-group"><label>Área</label><select value={area} onChange={e=>setArea(e.target.value)}>{AREAS.map(a=><option key={a}>{a}</option>)}</select></div>
+        <div className="input-group"><label>Modalidad</label><select value={mod} onChange={e=>setMod(e.target.value)}><option>Presencial</option><option>Híbrido</option><option>Remoto</option></select></div>
+        <div className="input-group"><label>Jornada</label><select value={jor} onChange={e=>setJor(e.target.value)}><option>Full time</option><option>Part time</option></select></div>
+        <div className="input-group"><label>Descripción</label><textarea value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Describí las responsabilidades..."></textarea></div>
+        <div className="input-group"><label>Requisitos (uno por línea)</label><textarea value={req} onChange={e=>setReq(e.target.value)} placeholder="Requisito 1&#10;Requisito 2"></textarea></div>
+        <button className="btn btn-primary btn-block" onClick={handlePublicar}>Publicar búsqueda</button>
       </div>
     );
   }
