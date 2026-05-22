@@ -32,8 +32,8 @@ function App() {
     });
   }, []);
 
-  useEffect(() => {
-    if (user) cargarPostulaciones();
+useEffect(() => {
+    if (user) { cargarPostulaciones(); setPage('bienvenida'); }
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -106,7 +106,7 @@ function App() {
     const { error } = await supabase.auth.signInWithPassword({ email: form.email.value, password: form.password.value });
     if (error) { setMsg('Email o contraseña incorrectos'); setLoading(false); return; }
     setLoading(false);
-    setDetail(null);
+setDetail(null);
   }
 
   async function cerrarSesion() {
@@ -163,29 +163,21 @@ function App() {
     return <span className={`badge ${map[e]||'badge-gray'}`}>{label[e]||e}</span>;
   }
 
-  function PantallaVacantes() {
+  function PantallaBienvenida() {
     return (
-      <div>
-        <input placeholder="Buscar vacantes..." style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'0.5px solid #d1d5db',fontSize:13,marginBottom:12,fontFamily:'inherit'}} />
-        <div className="filter-chips">
-          {['Todas',...AREAS].map(a=><span key={a} className={`chip ${filtroArea===a?'active':''}`} onClick={()=>setFiltroArea(a)}>{a}</span>)}
-        </div>
-        <p className="section-title">{filtradas.length} búsqueda{filtradas.length!==1?'s':''} activa{filtradas.length!==1?'s':''}</p>
-        {filtradas.map(v=>(
-          <div key={v.id} className="card" style={{cursor:'pointer'}} onClick={()=>setDetail({type:'vacante',data:v})}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
-              <p className="job-title">{v.titulo}</p>{estadoBadge(v.estado)}
-            </div>
-            <div className="job-meta">
-              <span>🏢 {v.area}</span><span>📍 {v.modalidad}</span><span>⏰ {v.jornada}</span>
-            </div>
-            <p style={{fontSize:12,color:'#6b7280',lineHeight:1.5}}>{v.descripcion?.substring(0,90)}…</p>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:10}}>
-              <span style={{fontSize:11,color:'#6b7280'}}>{v.postulantes} postulantes</span>
-              <span style={{fontSize:12,color:'#0D3D5C',fontWeight:500}}>Ver más →</span>
-            </div>
+      <div style={{textAlign:'center'}}>
+        <div style={{position:'relative',cursor:'pointer'}} onClick={()=>setPage('vacantes')}>
+          <img src="/bienvenida.jpg" alt="Bienvenidos a Free Customs" style={{width:'100%',display:'block'}} />
+          <div style={{position:'absolute',bottom:0,left:0,right:0,background:'linear-gradient(transparent,rgba(13,61,92,0.85))',padding:'24px 16px 20px'}}>
+            <p style={{color:'#fff',fontSize:15,fontWeight:500,marginBottom:4}}>Bienvenido/a, {perfil?.nombre?.split(' ')[0] || 'candidato'} 👋</p>
+            <p style={{color:'rgba(255,255,255,0.85)',fontSize:12}}>Tocá para ver las búsquedas activas</p>
           </div>
-        ))}
+        </div>
+        <div style={{padding:'16px',display:'flex',flexDirection:'column',gap:10}}>
+          <button className="btn btn-primary btn-block" onClick={()=>setPage('vacantes')}>🔍 Ver vacantes activas</button>
+          <button className="btn btn-block" onClick={()=>setPage('postulaciones')}>📋 Mis postulaciones</button>
+          <button className="btn btn-block" onClick={()=>setPage('perfil')}>👤 Mi perfil</button>
+        </div>
       </div>
     );
   }
@@ -468,6 +460,7 @@ function App() {
         <button className="btn btn-primary" onClick={()=>{setDetail(null);setPage('postulaciones')}}>Ver mis postulaciones</button>
       </div>
     );
+    if (page==='bienvenida') return <PantallaBienvenida />;
     if (page==='vacantes') return <PantallaVacantes />;
     if (page==='postulaciones') return <PantallaPostulaciones />;
     return <PantallaPerfil />;
