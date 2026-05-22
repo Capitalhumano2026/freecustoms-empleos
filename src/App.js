@@ -422,11 +422,22 @@ function App() {
           <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
             {estados.map(e=><button key={e} className={`btn btn-sm ${c.estado===e?'btn-primary':''}`} onClick={()=>cambiarEstado(c.id,e)}>{labels[e]}</button>)}
           </div>
-          {c.estado==='entrevista' && (
+{c.estado==='entrevista' && (
             <><hr className="divider" />
-            <div className="input-group"><label>Fecha y hora</label><input type="datetime-local" /></div>
-            <div className="input-group"><label>Modalidad</label><select><option>Zoom</option><option>Presencial</option><option>Teléfono</option></select></div>
-            <button className="btn btn-sm btn-primary">Notificar al candidato</button></>
+            <div className="input-group"><label>Fecha y hora</label><input id={`fecha-${c.id}`} type="datetime-local" defaultValue={c.fecha_entrevista?c.fecha_entrevista.slice(0,16):''} /></div>
+            <div className="input-group"><label>Modalidad</label>
+              <select id={`modal-${c.id}`} defaultValue={c.modalidad_entrevista||'Zoom'}>
+                <option>Zoom</option><option>Presencial</option><option>Teléfono</option>
+              </select>
+            </div>
+            <button className="btn btn-sm btn-primary" onClick={async()=>{
+              const fecha = document.getElementById(`fecha-${c.id}`).value;
+              const modalidad = document.getElementById(`modal-${c.id}`).value;
+              if (!fecha) { alert('Ingresá la fecha y hora'); return; }
+              await supabase.from('postulaciones').update({ fecha_entrevista: fecha, modalidad_entrevista: modalidad }).eq('id', c.id);
+              alert('✓ Entrevista guardada. El candidato verá la fecha en su perfil.');
+              await cargarCandidatosHR();
+            }}>Guardar y notificar</button></>
           )}
         </div>
         <div className="card">
