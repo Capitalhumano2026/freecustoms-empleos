@@ -373,7 +373,7 @@ function PantallaLogin() {
           <div className="input-group"><label>Jornada</label><select name="jornada"><option>Full time</option><option>Part time</option></select></div>
           <div className="input-group"><label>Descripción</label><textarea name="descripcion" placeholder="Describí las responsabilidades..."></textarea></div>
           <div className="input-group"><label>Requisitos (uno por línea)</label><textarea name="requisitos" placeholder="Requisito 1&#10;Requisito 2"></textarea></div>
-          <button className="btn btn-primary btn-block" type="submit">Publicar búsqueda</button>
+          <button className="btn btn-primary btn-block" type="button" onClick={(e)=>{e.preventDefault();publicarVacante({preventDefault:()=>{},target:e.target.closest('form')})}}>Publicar búsqueda</button>
         </form>
       </div>
     );
