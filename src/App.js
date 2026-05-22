@@ -159,6 +159,21 @@ async function guardarPerfil(e) {
       titulo: form.titulo.value, area: form.area.value, modalidad: form.modalidad.value,
       jornada: form.jornada.value, descripcion: form.descripcion.value, requisitos
     });
+    if (error) {
+      alert('Error: ' + error.message);
+    } else {
+      await cargarVacantes();
+      setDetail(null);
+      setHrPage('busquedas');
+    }
+  }
+    e.preventDefault();
+    const form = e.target;
+    const requisitos = form.requisitos.value.split('\n').map(r=>r.trim()).filter(Boolean);
+    const { error } = await supabase.from('vacantes').insert({
+      titulo: form.titulo.value, area: form.area.value, modalidad: form.modalidad.value,
+      jornada: form.jornada.value, descripcion: form.descripcion.value, requisitos
+    });
     if (!error) { await cargarVacantes(); setDetail(null); setHrPage('busquedas'); }
   }
 
