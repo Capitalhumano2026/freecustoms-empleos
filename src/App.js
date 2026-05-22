@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabase';
 import './App.css';
- 
+
 const AREAS = ['Administración','Aduana','Capital Humano','Comercial','Forwarder','Logística','Proyecto'];
 const HR_EMAILS = ['rrhh@freecustoms.com.ar', 'tarriagada@freecustoms.com'];
- 
+
 function App() {
   const [role, setRole] = useState('candidato');
   const [page, setPage] = useState('vacantes');
@@ -18,9 +18,9 @@ function App() {
   const [candidatosHR, setCandidatosHR] = useState([]);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState('');
- 
+
   const esHR = user && HR_EMAILS.includes(user.email);
- 
+
   useEffect(() => {
     cargarVacantes();
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -31,40 +31,39 @@ function App() {
       else { setUser(null); setPerfil(null); setRole('candidato'); }
     });
   }, []);
- 
+
   useEffect(() => {
     if (user) cargarPostulaciones();
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
- 
+
   useEffect(() => {
     if (role === 'hr') cargarCandidatosHR();
   }, [role]); // eslint-disable-line react-hooks/exhaustive-deps
- 
-  // Si el usuario no es HR y está en modo hr, lo mandamos a candidato
+
   useEffect(() => {
     if (user && !esHR && role === 'hr') setRole('candidato');
   }, [user, esHR, role]);
- 
+
   async function cargarVacantes() {
     const { data } = await supabase.from('vacantes').select('*').eq('estado','activa').order('created_at', { ascending: false });
     if (data) setVacantes(data);
   }
- 
+
   async function cargarPerfil(uid) {
     const { data } = await supabase.from('perfiles').select('*').eq('id', uid).single();
     if (data) setPerfil(data);
   }
- 
+
   async function cargarPostulaciones() {
     const { data } = await supabase.from('postulaciones').select('*, vacantes(titulo, area)').eq('candidato_id', user.id);
     if (data) setPostulaciones(data);
   }
- 
+
   async function cargarCandidatosHR() {
     const { data } = await supabase.from('postulaciones').select('*, perfiles(nombre, email, linkedin, cv_url, cv_nombre), vacantes(titulo, area)');
     if (data) setCandidatosHR(data);
   }
- 
+
   async function subirCV(cvFile, userId) {
     if (!cvFile) return { cv_url: null, cv_nombre: null };
     const ext = cvFile.name.split('.').pop();
@@ -74,7 +73,7 @@ function App() {
     const { data: urlData } = supabase.storage.from('cvs').getPublicUrl(fileName);
     return { cv_url: urlData.publicUrl, cv_nombre: cvFile.name };
   }
- 
+
   async function registrarse(e) {
     e.preventDefault();
     setLoading(true);
@@ -98,7 +97,7 @@ function App() {
     setPage('vacantes');
     setDetail(null);
   }
- 
+
   async function iniciarSesion(e) {
     e.preventDefault();
     setLoading(true);
@@ -109,14 +108,14 @@ function App() {
     setLoading(false);
     setDetail(null);
   }
- 
+
   async function cerrarSesion() {
     await supabase.auth.signOut();
     setPage('vacantes');
     setRole('candidato');
     setPostulaciones([]);
   }
- 
+
   async function postularse(vacanteId) {
     if (!user) { setDetail({ type: 'login' }); return; }
     setLoading(true);
@@ -129,17 +128,17 @@ function App() {
     }
     setLoading(false);
   }
- 
+
   async function cambiarEstado(postulacionId, nuevoEstado) {
     await supabase.from('postulaciones').update({ estado: nuevoEstado }).eq('id', postulacionId);
     await cargarCandidatosHR();
     setDetail(d => ({ ...d, data: { ...d.data, estado: nuevoEstado } }));
   }
- 
+
   async function guardarNota(postulacionId, nota) {
     await supabase.from('postulaciones').update({ notas: nota }).eq('id', postulacionId);
   }
- 
+
   async function guardarPerfil(e) {
     e.preventDefault();
     const form = e.target;
@@ -154,16 +153,16 @@ function App() {
     setMsg('✓ Perfil actualizado');
     setTimeout(() => setMsg(''), 2000);
   }
- 
+
   const filtradas = filtroArea === 'Todas' ? vacantes : vacantes.filter(v => v.area === filtroArea);
   const filtradosHR = filtroArea === 'Todas' ? candidatosHR : candidatosHR.filter(c => c.vacantes?.area === filtroArea);
- 
+
   function estadoBadge(e) {
     const map = { recibido:'badge-gray', entrevista:'badge-info', finalista:'badge-active', descartado:'badge-danger', activa:'badge-active' };
     const label = { recibido:'CV recibido', entrevista:'Entrevista pautada', finalista:'Instancia final', descartado:'No avanza', activa:'Activa' };
     return <span className={`badge ${map[e]||'badge-gray'}`}>{label[e]||e}</span>;
   }
- 
+
   function PantallaVacantes() {
     return (
       <div>
@@ -190,7 +189,7 @@ function App() {
       </div>
     );
   }
- 
+
   function PantallaVacanteDetalle({ v }) {
     const yaPostulado = postulaciones.some(p => p.vacante_id === v.id);
     return (
@@ -217,7 +216,7 @@ function App() {
       </div>
     );
   }
- 
+
   function PantallaLogin() {
     const [modo, setModo] = useState('login');
     return (
@@ -261,7 +260,7 @@ function App() {
       </div>
     );
   }
- 
+
   function PantallaPostulaciones() {
     if (!user) return <div className="empty"><p style={{fontSize:14,fontWeight:500,marginBottom:6}}>Necesitás iniciar sesión</p><button className="btn btn-primary" onClick={()=>setDetail({type:'login'})}>Registrarme</button></div>;
     if (!postulaciones.length) return <div className="empty"><p style={{fontSize:14}}>Todavía no te postulaste a ninguna búsqueda.</p></div>;
@@ -291,7 +290,7 @@ function App() {
       </div>
     );
   }
- 
+
   function PantallaPerfil() {
     if (!user) return <div className="empty"><p style={{fontSize:14,fontWeight:500,marginBottom:6}}>Creá tu perfil</p><button className="btn btn-primary" onClick={()=>setDetail({type:'login'})}>Registrarme</button></div>;
     return (
@@ -317,7 +316,7 @@ function App() {
       </div>
     );
   }
- 
+
   function PantallaBusquedasHR() {
     const filtradas2 = filtroArea==='Todas' ? vacantes : vacantes.filter(v=>v.area===filtroArea);
     return (
@@ -337,7 +336,7 @@ function App() {
       </div>
     );
   }
- 
+
   function PantallaNuevaBusqueda() {
     const [tit, setTit] = useState('');
     const [area, setArea] = useState(AREAS[0]);
@@ -346,7 +345,7 @@ function App() {
     const [desc, setDesc] = useState('');
     const [req, setReq] = useState('');
     const [err, setErr] = useState('');
- 
+
     async function handlePublicar() {
       if (!tit.trim()) { setErr('Ingresá el título del puesto'); return; }
       setErr('');
@@ -357,7 +356,7 @@ function App() {
       if (error) { setErr('Error: ' + error.message); }
       else { await cargarVacantes(); setDetail(null); setHrPage('busquedas'); }
     }
- 
+
     return (
       <div>
         <div className="back-btn" onClick={()=>setDetail(null)}>← Volver</div>
@@ -373,7 +372,7 @@ function App() {
       </div>
     );
   }
- 
+
   function PantallaCandidatosHR() {
     return (
       <div>
@@ -394,7 +393,7 @@ function App() {
       </div>
     );
   }
- 
+
   function PantallaCandidatoDetalle({ c }) {
     const [nota, setNota] = useState(c.notas||'');
     const estados = ['recibido','entrevista','finalista','descartado'];
@@ -438,7 +437,7 @@ function App() {
       </div>
     );
   }
- 
+
   function renderCandidato() {
     if (detail?.type==='vacante') return <PantallaVacanteDetalle v={detail.data} />;
     if (detail?.type==='login') return <PantallaLogin />;
@@ -454,7 +453,7 @@ function App() {
     if (page==='postulaciones') return <PantallaPostulaciones />;
     return <PantallaPerfil />;
   }
- 
+
   function renderHR() {
     if (!esHR) return <div className="empty"><p style={{fontSize:14,fontWeight:500}}>Acceso no autorizado.</p></div>;
     if (detail?.type==='candidato_hr') return <PantallaCandidatoDetalle c={detail.data} />;
@@ -463,7 +462,7 @@ function App() {
     if (hrPage==='candidatos') return <PantallaCandidatosHR />;
     return <PantallaBusquedasHR />;
   }
- 
+
   return (
     <div style={{background:'#f0f4f8',minHeight:'100vh',display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'20px 0'}}>
       <div className="app">
@@ -493,6 +492,5 @@ function App() {
     </div>
   );
 }
- 
+
 export default App;
- 
