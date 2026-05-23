@@ -32,8 +32,8 @@ function App() {
     });
   }, []);
 
-useEffect(() => {
-    if (user) { cargarPostulaciones(); setPage('bienvenida'); }
+  useEffect(() => {
+    if (user) { cargarPostulaciones(); }
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -106,7 +106,7 @@ useEffect(() => {
     const { error } = await supabase.auth.signInWithPassword({ email: form.email.value, password: form.password.value });
     if (error) { setMsg('Email o contraseña incorrectos'); setLoading(false); return; }
     setLoading(false);
-setDetail(null);
+    setDetail(null);
   }
 
   async function cerrarSesion() {
@@ -163,25 +163,7 @@ setDetail(null);
     return <span className={`badge ${map[e]||'badge-gray'}`}>{label[e]||e}</span>;
   }
 
-  function PantallaBienvenida() {
-    return (
-      <div style={{textAlign:'center'}}>
-        <div style={{position:'relative',cursor:'pointer'}} onClick={()=>setPage('vacantes')}>
-          <img src="/bienvenida.jpg" alt="Bienvenidos a Free Customs" style={{width:'100%',display:'block'}} />
-          <div style={{position:'absolute',bottom:0,left:0,right:0,background:'linear-gradient(transparent,rgba(13,61,92,0.85))',padding:'24px 16px 20px'}}>
-            <p style={{color:'#fff',fontSize:15,fontWeight:500,marginBottom:4}}>Bienvenido/a, {perfil?.nombre?.split(' ')[0] || 'candidato'} 👋</p>
-            <p style={{color:'rgba(255,255,255,0.85)',fontSize:12}}>Tocá para ver las búsquedas activas</p>
-          </div>
-        </div>
-        <div style={{padding:'16px',display:'flex',flexDirection:'column',gap:10}}>
-          <button className="btn btn-primary btn-block" onClick={()=>setPage('vacantes')}>🔍 Ver vacantes activas</button>
-          <button className="btn btn-block" onClick={()=>setPage('postulaciones')}>📋 Mis postulaciones</button>
-          <button className="btn btn-block" onClick={()=>setPage('perfil')}>👤 Mi perfil</button>
-        </div>
-      </div>
-    );
-  }
-    function PantallaVacantes() {
+  function PantallaVacantes() {
     return (
       <div>
         <input placeholder="Buscar vacantes..." style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'0.5px solid #d1d5db',fontSize:13,marginBottom:12,fontFamily:'inherit'}} />
@@ -207,6 +189,7 @@ setDetail(null);
       </div>
     );
   }
+
   function PantallaVacanteDetalle({ v }) {
     const yaPostulado = postulaciones.some(p => p.vacante_id === v.id);
     return (
@@ -296,7 +279,7 @@ setDetail(null);
                 {estadoBadge(p.estado)}
               </div>
               <ul className="timeline">
-{steps.map((st,i)=>{
+                {steps.map((st,i)=>{
                   const dc = i<idx?'done':i===idx&&p.estado!=='descartado'?'active':p.estado==='descartado'&&st.key==='descartado'?'rejected':'pending';
                   return <li key={st.key}><div className={`tl-dot ${dc}`}>{dc==='done'?'✓':dc==='active'?'●':dc==='rejected'?'✕':'○'}</div><div><p style={{fontSize:13,fontWeight:500,color:dc==='pending'?'#6b7280':'#1a1a1a'}}>{st.label}</p>{st.key==='entrevista'&&p.fecha_entrevista&&<div style={{marginTop:3}}><span style={{fontSize:11,color:'#185A80',display:'block'}}>{new Date(p.fecha_entrevista).toLocaleString('es-AR')} · {p.modalidad_entrevista}</span>{p.entrevistador&&<span style={{fontSize:11,color:'#6b7280',display:'block'}}>Con: {p.entrevistador}</span>}{p.link_entrevista&&<a href={p.link_entrevista} target="_blank" rel="noreferrer" style={{fontSize:11,color:'#0A66C2',display:'block'}}>🔗 Unirse a la reunión</a>}</div>}</div></li>;
                 })}
@@ -392,7 +375,8 @@ setDetail(null);
       </div>
     );
   }
-function PantallaEditarVacante({ v }) {
+
+  function PantallaEditarVacante({ v }) {
     const [tit, setTit] = useState(v.titulo);
     const [area, setArea] = useState(v.area);
     const [mod, setMod] = useState(v.modalidad);
@@ -438,6 +422,7 @@ function PantallaEditarVacante({ v }) {
       </div>
     );
   }
+
   function PantallaCandidatosHR() {
     return (
       <div>
@@ -487,12 +472,12 @@ function PantallaEditarVacante({ v }) {
           <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
             {estados.map(e=><button key={e} className={`btn btn-sm ${c.estado===e?'btn-primary':''}`} onClick={()=>cambiarEstado(c.id,e)}>{labels[e]}</button>)}
           </div>
-{c.estado==='entrevista' && (
+          {c.estado==='entrevista' && (
             <><hr className="divider" />
             <div className="input-group"><label>Fecha y hora</label><input id={`fecha-${c.id}`} type="datetime-local" defaultValue={c.fecha_entrevista?c.fecha_entrevista.slice(0,16):''} /></div>
- <div className="input-group"><label>Modalidad</label>
-              <select id={`modal-${c.id}`} defaultValue={c.modalidad_entrevista||'Zoom'}>
-                <option>Zoom</option><option>Google Meet</option><option>Presencial</option><option>Teléfono</option>
+            <div className="input-group"><label>Modalidad</label>
+              <select id={`modal-${c.id}`} defaultValue={c.modalidad_entrevista||'Google Meet'}>
+                <option>Google Meet</option><option>Zoom</option><option>Presencial</option><option>Teléfono</option>
               </select>
             </div>
             <div className="input-group"><label>Link de la reunión (opcional)</label>
@@ -508,7 +493,7 @@ function PantallaEditarVacante({ v }) {
               const entrevistador = document.getElementById(`entrev-${c.id}`).value;
               if (!fecha) { alert('Ingresá la fecha y hora'); return; }
               await supabase.from('postulaciones').update({ fecha_entrevista: fecha, modalidad_entrevista: modalidad, link_entrevista, entrevistador }).eq('id', c.id);
-              alert('✓ Entrevista guardada. El candidato verá los detalles en su perfil.');
+              alert('✓ Entrevista guardada.');
               await cargarCandidatosHR();
             }}>Guardar y notificar</button></>
           )}
@@ -533,8 +518,6 @@ function PantallaEditarVacante({ v }) {
         <button className="btn btn-primary" onClick={()=>{setDetail(null);setPage('postulaciones')}}>Ver mis postulaciones</button>
       </div>
     );
-    if (page==='bienvenida') return <PantallaBienvenida />;
-    // eslint-disable-next-line
     if (page==='vacantes') return <PantallaVacantes />;
     if (page==='postulaciones') return <PantallaPostulaciones />;
     return <PantallaPerfil />;
