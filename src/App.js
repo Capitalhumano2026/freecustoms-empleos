@@ -33,7 +33,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (user) { cargarPostulaciones(); }
+    if (user) { cargarPostulaciones(); setPage('bienvenida'); }
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -162,7 +162,19 @@ function App() {
     const label = { recibido:'CV recibido', entrevista:'Entrevista pautada', finalista:'Instancia final', descartado:'No avanza', activa:'Activa' };
     return <span className={`badge ${map[e]||'badge-gray'}`}>{label[e]||e}</span>;
   }
-
+function PantallaBienvenida() {
+    return (
+      <div style={{cursor:'pointer',position:'relative'}} onClick={()=>setPage('vacantes')}>
+        <img src="/bienvenida.jpg" alt="Bienvenidos a Free Customs" style={{width:'100%',display:'block'}} />
+        <div style={{position:'absolute',bottom:0,left:0,right:0,background:'linear-gradient(transparent,rgba(13,61,92,0.92))',padding:'32px 20px 24px',textAlign:'center'}}>
+          <p style={{color:'#fff',fontSize:16,fontWeight:500,marginBottom:6}}>¡Bienvenido/a, {perfil?.nombre?.split(' ')[0] || 'candidato'}!</p>
+          <div style={{display:'inline-flex',alignItems:'center',gap:8,background:'rgba(255,255,255,0.15)',border:'1.5px solid rgba(255,255,255,0.6)',borderRadius:24,padding:'8px 20px',color:'#fff',fontSize:13}}>
+            Tocá para continuar →
+          </div>
+        </div>
+      </div>
+    );
+  }
   function PantallaVacantes() {
     return (
       <div>
@@ -518,6 +530,7 @@ function App() {
         <button className="btn btn-primary" onClick={()=>{setDetail(null);setPage('postulaciones')}}>Ver mis postulaciones</button>
       </div>
     );
+    if (page==='bienvenida') return <PantallaBienvenida />;
     if (page==='vacantes') return <PantallaVacantes />;
     if (page==='postulaciones') return <PantallaPostulaciones />;
     return <PantallaPerfil />;
