@@ -181,7 +181,7 @@ setDetail(null);
       </div>
     );
   }
-  function PantallaVacantes() {
+    function PantallaVacantes() {
     return (
       <div>
         <input placeholder="Buscar vacantes..." style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'0.5px solid #d1d5db',fontSize:13,marginBottom:12,fontFamily:'inherit'}} />
@@ -347,7 +347,10 @@ setDetail(null);
           <div key={v.id} className="card">
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}><p className="job-title" style={{fontSize:14}}>{v.titulo}</p>{estadoBadge(v.estado)}</div>
             <div className="job-meta"><span>🏢 {v.area}</span><span>📍 {v.modalidad}</span></div>
-            <div style={{marginTop:10}}><span style={{fontSize:12,color:'#6b7280'}}>👥 {v.postulantes} postulantes</span></div>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:10}}>
+              <span style={{fontSize:12,color:'#6b7280'}}>👥 {v.postulantes} postulantes</span>
+              <button className="btn btn-sm" onClick={()=>setDetail({type:'editar_vacante',data:v})}>✏️ Editar</button>
+            </div>
           </div>
         ))}
       </div>
@@ -389,7 +392,52 @@ setDetail(null);
       </div>
     );
   }
+function PantallaEditarVacante({ v }) {
+    const [tit, setTit] = useState(v.titulo);
+    const [area, setArea] = useState(v.area);
+    const [mod, setMod] = useState(v.modalidad);
+    const [jor, setJor] = useState(v.jornada);
+    const [desc, setDesc] = useState(v.descripcion||'');
+    const [req, setReq] = useState((v.requisitos||[]).join('\n'));
+    const [estado, setEstado] = useState(v.estado);
+    const [err, setErr] = useState('');
 
+    async function handleGuardar() {
+      if (!tit.trim()) { setErr('Ingresá el título del puesto'); return; }
+      setErr('');
+      const requisitos = req.split('\n').map(r=>r.trim()).filter(Boolean);
+      const { error } = await supabase.from('vacantes').update({
+        titulo: tit.trim(), area, modalidad: mod, jornada: jor, descripcion: desc, requisitos, estado
+      }).eq('id', v.id);
+      if (error) { setErr('Error: ' + error.message); }
+      else { await cargarVacantes(); setDetail(null); setHrPage('busquedas'); }
+    }
+
+    async function handleEliminar() {
+      if (!window.confirm('¿Estás seguro que querés eliminar esta búsqueda?')) return;
+      await supabase.from('vacantes').delete().eq('id', v.id);
+      await cargarVacantes();
+      setDetail(null);
+      setHrPage('busquedas');
+    }
+
+    return (
+      <div>
+        <div className="back-btn" onClick={()=>setDetail(null)}>← Volver</div>
+        <p style={{fontSize:16,fontWeight:500,marginBottom:16}}>Editar búsqueda</p>
+        {err && <p style={{color:'red',fontSize:12,marginBottom:10}}>{err}</p>}
+        <div className="input-group"><label>Título del puesto</label><input value={tit} onChange={e=>setTit(e.target.value)} /></div>
+        <div className="input-group"><label>Área</label><select value={area} onChange={e=>setArea(e.target.value)}>{AREAS.map(a=><option key={a}>{a}</option>)}</select></div>
+        <div className="input-group"><label>Modalidad</label><select value={mod} onChange={e=>setMod(e.target.value)}><option>Presencial</option><option>Híbrido</option><option>Remoto</option></select></div>
+        <div className="input-group"><label>Jornada</label><select value={jor} onChange={e=>setJor(e.target.value)}><option>Full time</option><option>Part time</option></select></div>
+        <div className="input-group"><label>Estado</label><select value={estado} onChange={e=>setEstado(e.target.value)}><option value="activa">Activa</option><option value="pausada">Pausada</option><option value="cerrada">Cerrada</option></select></div>
+        <div className="input-group"><label>Descripción</label><textarea value={desc} onChange={e=>setDesc(e.target.value)}></textarea></div>
+        <div className="input-group"><label>Requisitos (uno por línea)</label><textarea value={req} onChange={e=>setReq(e.target.value)}></textarea></div>
+        <button className="btn btn-primary btn-block" onClick={handleGuardar}>Guardar cambios</button>
+        <button className="btn btn-block" style={{marginTop:8,color:'#791F1F',borderColor:'#FCEBEB'}} onClick={handleEliminar}>🗑 Eliminar búsqueda</button>
+      </div>
+    );
+  }
   function PantallaCandidatosHR() {
     return (
       <div>
@@ -486,6 +534,7 @@ setDetail(null);
       </div>
     );
     if (page==='bienvenida') return <PantallaBienvenida />;
+    // eslint-disable-next-line
     if (page==='vacantes') return <PantallaVacantes />;
     if (page==='postulaciones') return <PantallaPostulaciones />;
     return <PantallaPerfil />;
@@ -495,6 +544,7 @@ setDetail(null);
     if (!esHR) return <div className="empty"><p style={{fontSize:14,fontWeight:500}}>Acceso no autorizado.</p></div>;
     if (detail?.type==='candidato_hr') return <PantallaCandidatoDetalle c={detail.data} />;
     if (detail?.type==='nueva_busqueda') return <PantallaNuevaBusqueda />;
+    if (detail?.type==='editar_vacante') return <PantallaEditarVacante v={detail.data} />;
     if (hrPage==='busquedas') return <PantallaBusquedasHR />;
     if (hrPage==='candidatos') return <PantallaCandidatosHR />;
     return <PantallaBusquedasHR />;
