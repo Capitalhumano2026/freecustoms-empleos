@@ -94,7 +94,6 @@ function App() {
       setPerfil({ nombre, email, telefono, linkedin, cv_url, cv_nombre });
     }
     setLoading(false);
-    setPage('vacantes');
     setDetail(null);
   }
 
