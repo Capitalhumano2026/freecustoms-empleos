@@ -33,7 +33,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (user) { cargarPostulaciones(); setPage('bienvenida'); }
+    if (user) { cargarPostulaciones(); }
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -117,13 +117,18 @@ function App() {
 
   async function postularse(vacanteId) {
     if (!user) { setDetail({ type: 'login' }); return; }
+    const vacante = vacantes.find(v=>v.id===vacanteId);
+    if (vacante?.preguntas?.length > 0) {
+      setDetail({ type: 'cuestionario', data: vacante });
+      return;
+    }
     setLoading(true);
-    const { error } = await supabase.from('postulaciones').insert({ candidato_id: user.id, vacante_id: vacanteId, estado: 'recibido' });
+    const { error } = await supabase.from('postulaciones').insert({ candidato_id: user.id, vacante_id: vacanteId, estado: 'recibido', respuestas: [] });
     if (!error) {
-      await supabase.from('vacantes').update({ postulantes: (vacantes.find(v=>v.id===vacanteId)?.postulantes||0)+1 }).eq('id', vacanteId);
+      await supabase.from('vacantes').update({ postulantes: (vacante?.postulantes||0)+1 }).eq('id', vacanteId);
       await cargarPostulaciones();
       await cargarVacantes();
-      setDetail({ type: 'exito', titulo: vacantes.find(v=>v.id===vacanteId)?.titulo });
+      setDetail({ type: 'exito', titulo: vacante?.titulo });
     }
     setLoading(false);
   }
@@ -161,19 +166,7 @@ function App() {
     const label = { recibido:'CV recibido', entrevista:'Entrevista pautada', finalista:'Instancia final', descartado:'No avanza', activa:'Activa' };
     return <span className={`badge ${map[e]||'badge-gray'}`}>{label[e]||e}</span>;
   }
-function PantallaBienvenida() {
-    return (
-      <div style={{cursor:'pointer',position:'relative'}} onClick={()=>setPage('vacantes')}>
-        <img src="/bienvenida.jpg" alt="Bienvenidos a Free Customs" style={{width:'100%',display:'block'}} />
-        <div style={{position:'absolute',bottom:0,left:0,right:0,background:'linear-gradient(transparent,rgba(13,61,92,0.92))',padding:'32px 20px 24px',textAlign:'center'}}>
-          <p style={{color:'#fff',fontSize:16,fontWeight:500,marginBottom:6}}>¡Bienvenido/a, {perfil?.nombre?.split(' ')[0] || 'candidato'}!</p>
-          <div style={{display:'inline-flex',alignItems:'center',gap:8,background:'rgba(255,255,255,0.15)',border:'1.5px solid rgba(255,255,255,0.6)',borderRadius:24,padding:'8px 20px',color:'#fff',fontSize:13}}>
-            Tocá para continuar →
-          </div>
-        </div>
-      </div>
-    );
-  }
+
   function PantallaVacantes() {
     return (
       <div>
@@ -292,7 +285,7 @@ function PantallaBienvenida() {
               <ul className="timeline">
                 {steps.map((st,i)=>{
                   const dc = i<idx?'done':i===idx&&p.estado!=='descartado'?'active':p.estado==='descartado'&&st.key==='descartado'?'rejected':'pending';
-                  return <li key={st.key}><div className={`tl-dot ${dc}`}>{dc==='done'?'✓':dc==='active'?'●':dc==='rejected'?'✕':'○'}</div><div><p style={{fontSize:13,fontWeight:500,color:dc==='pending'?'#6b7280':'#1a1a1a'}}>{st.label}</p>{st.key==='entrevista'&&p.fecha_entrevista&&<div style={{marginTop:3}}><span style={{fontSize:11,color:'#185A80',display:'block'}}>{new Date(p.fecha_entrevista).toLocaleString('es-AR')} · {p.modalidad_entrevista}</span>{p.entrevistador&&<span style={{fontSize:11,color:'#6b7280',display:'block'}}>Con: {p.entrevistador}</span>}{p.link_entrevista&&<a href={p.link_entrevista} target="_blank" rel="noreferrer" style={{fontSize:11,color:'#0A66C2',display:'block'}}>🔗 Unirse a la reunión</a>}</div>}</div></li>;
+                  return <li key={st.key}><div className={`tl-dot ${dc}`}>{dc==='done'?'✓':dc==='active'?'●':dc==='rejected'?'✕':'○'}</div><div><p style={{fontSize:13,fontWeight:500,color:dc==='pending'?'#6b7280':'#1a1a1a'}}>{st.label}</p>{st.key==='entrevista'&&p.fecha_entrevista&&<div style={{marginTop:3}}><span style={{fontSize:11,color:'#185A80',display:'block'}}>{p.fecha_entrevista.replace('T',' ').slice(0,16)} · {p.modalidad_entrevista}</span>{p.entrevistador&&<span style={{fontSize:11,color:'#6b7280',display:'block'}}>Con: {p.entrevistador}</span>}{p.link_entrevista&&<a href={p.link_entrevista} target="_blank" rel="noreferrer" style={{fontSize:11,color:'#0A66C2',display:'block'}}>🔗 Unirse a la reunión</a>}</div>}</div></li>;
                 })}
               </ul>
             </div>
@@ -358,14 +351,26 @@ function PantallaBienvenida() {
     const [jor, setJor] = useState('Full time');
     const [desc, setDesc] = useState('');
     const [req, setReq] = useState('');
+    const [preguntas, setPreguntas] = useState([]);
+    const [nuevaPregunta, setNuevaPregunta] = useState('');
     const [err, setErr] = useState('');
+
+    function agregarPregunta() {
+      if (!nuevaPregunta.trim()) return;
+      setPreguntas([...preguntas, nuevaPregunta.trim()]);
+      setNuevaPregunta('');
+    }
+
+    function quitarPregunta(i) {
+      setPreguntas(preguntas.filter((_,idx)=>idx!==i));
+    }
 
     async function handlePublicar() {
       if (!tit.trim()) { setErr('Ingresá el título del puesto'); return; }
       setErr('');
       const requisitos = req.split('\n').map(r=>r.trim()).filter(Boolean);
       const { error } = await supabase.from('vacantes').insert({
-        titulo: tit.trim(), area, modalidad: mod, jornada: jor, descripcion: desc, requisitos
+        titulo: tit.trim(), area, modalidad: mod, jornada: jor, descripcion: desc, requisitos, preguntas
       });
       if (error) { setErr('Error: ' + error.message); }
       else { await cargarVacantes(); setDetail(null); setHrPage('busquedas'); }
@@ -382,6 +387,20 @@ function PantallaBienvenida() {
         <div className="input-group"><label>Jornada</label><select value={jor} onChange={e=>setJor(e.target.value)}><option>Full time</option><option>Part time</option></select></div>
         <div className="input-group"><label>Descripción</label><textarea value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Describí las responsabilidades..."></textarea></div>
         <div className="input-group"><label>Requisitos (uno por línea)</label><textarea value={req} onChange={e=>setReq(e.target.value)} placeholder="Requisito 1&#10;Requisito 2"></textarea></div>
+        <div className="input-group">
+          <label>Preguntas de preselección</label>
+          {preguntas.map((p,i)=>(
+            <div key={i} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6,background:'#f9fafb',padding:'8px 10px',borderRadius:8}}>
+              <span style={{flex:1,fontSize:13}}>{p}</span>
+              <button className="btn btn-sm" style={{color:'#791F1F',padding:'2px 8px'}} onClick={()=>quitarPregunta(i)}>✕</button>
+            </div>
+          ))}
+          <div style={{display:'flex',gap:6}}>
+            <input value={nuevaPregunta} onChange={e=>setNuevaPregunta(e.target.value)} placeholder="Ej: ¿Cuántos años de experiencia tenés?" onKeyDown={e=>e.key==='Enter'&&agregarPregunta()} style={{flex:1}} />
+            <button className="btn btn-sm btn-primary" onClick={agregarPregunta}>+ Agregar</button>
+          </div>
+          <p style={{fontSize:11,color:'#6b7280',marginTop:4}}>Presioná Enter o hacé clic en Agregar</p>
+        </div>
         <button className="btn btn-primary btn-block" onClick={handlePublicar}>Publicar búsqueda</button>
       </div>
     );
@@ -395,14 +414,26 @@ function PantallaBienvenida() {
     const [desc, setDesc] = useState(v.descripcion||'');
     const [req, setReq] = useState((v.requisitos||[]).join('\n'));
     const [estado, setEstado] = useState(v.estado);
+    const [preguntas, setPreguntas] = useState(v.preguntas||[]);
+    const [nuevaPregunta, setNuevaPregunta] = useState('');
     const [err, setErr] = useState('');
+
+    function agregarPregunta() {
+      if (!nuevaPregunta.trim()) return;
+      setPreguntas([...preguntas, nuevaPregunta.trim()]);
+      setNuevaPregunta('');
+    }
+
+    function quitarPregunta(i) {
+      setPreguntas(preguntas.filter((_,idx)=>idx!==i));
+    }
 
     async function handleGuardar() {
       if (!tit.trim()) { setErr('Ingresá el título del puesto'); return; }
       setErr('');
       const requisitos = req.split('\n').map(r=>r.trim()).filter(Boolean);
       const { error } = await supabase.from('vacantes').update({
-        titulo: tit.trim(), area, modalidad: mod, jornada: jor, descripcion: desc, requisitos, estado
+        titulo: tit.trim(), area, modalidad: mod, jornada: jor, descripcion: desc, requisitos, estado, preguntas
       }).eq('id', v.id);
       if (error) { setErr('Error: ' + error.message); }
       else { await cargarVacantes(); setDetail(null); setHrPage('busquedas'); }
@@ -428,6 +459,19 @@ function PantallaBienvenida() {
         <div className="input-group"><label>Estado</label><select value={estado} onChange={e=>setEstado(e.target.value)}><option value="activa">Activa</option><option value="pausada">Pausada</option><option value="cerrada">Cerrada</option></select></div>
         <div className="input-group"><label>Descripción</label><textarea value={desc} onChange={e=>setDesc(e.target.value)}></textarea></div>
         <div className="input-group"><label>Requisitos (uno por línea)</label><textarea value={req} onChange={e=>setReq(e.target.value)}></textarea></div>
+        <div className="input-group">
+          <label>Preguntas de preselección</label>
+          {preguntas.map((p,i)=>(
+            <div key={i} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6,background:'#f9fafb',padding:'8px 10px',borderRadius:8}}>
+              <span style={{flex:1,fontSize:13}}>{p}</span>
+              <button className="btn btn-sm" style={{color:'#791F1F',padding:'2px 8px'}} onClick={()=>quitarPregunta(i)}>✕</button>
+            </div>
+          ))}
+          <div style={{display:'flex',gap:6}}>
+            <input value={nuevaPregunta} onChange={e=>setNuevaPregunta(e.target.value)} placeholder="Ej: ¿Cuántos años de experiencia tenés?" onKeyDown={e=>e.key==='Enter'&&agregarPregunta()} style={{flex:1}} />
+            <button className="btn btn-sm btn-primary" onClick={agregarPregunta}>+ Agregar</button>
+          </div>
+        </div>
         <button className="btn btn-primary btn-block" onClick={handleGuardar}>Guardar cambios</button>
         <button className="btn btn-block" style={{marginTop:8,color:'#791F1F',borderColor:'#FCEBEB'}} onClick={handleEliminar}>🗑 Eliminar búsqueda</button>
       </div>
@@ -477,6 +521,17 @@ function PantallaBienvenida() {
             <a href={c.perfiles.cv_url} target="_blank" rel="noreferrer" className="btn btn-sm">⬇ Descargar CV</a>
           </div>
         )}
+        {c.respuestas?.length > 0 && (
+          <div className="card" style={{marginBottom:12}}>
+            <p style={{fontSize:13,fontWeight:500,marginBottom:10}}>📋 Respuestas de preselección</p>
+            {c.respuestas.map((r,i)=>(
+              <div key={i} style={{marginBottom:10,paddingBottom:10,borderBottom:'0.5px solid #e5e7eb'}}>
+                <p style={{fontSize:12,fontWeight:500,color:'#0D3D5C',marginBottom:3}}>{r.pregunta}</p>
+                <p style={{fontSize:13,color:'#1a1a1a'}}>{r.respuesta}</p>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="card" style={{marginBottom:12}}>
           <p style={{fontSize:12,color:'#6b7280',marginBottom:8}}>Estado del proceso</p>
           <p style={{marginBottom:10}}>{estadoBadge(c.estado)}</p>
@@ -518,9 +573,45 @@ function PantallaBienvenida() {
     );
   }
 
+  function PantallaCuestionario({ v }) {
+    const [respuestas, setRespuestas] = useState((v.preguntas||[]).map(()=>''));
+    const [err, setErr] = useState('');
+
+    async function handleEnviar() {
+      if (respuestas.some(r=>!r.trim())) { setErr('Por favor respondé todas las preguntas'); return; }
+      setLoading(true);
+      const respuestasObj = (v.preguntas||[]).map((pregunta, i) => ({ pregunta, respuesta: respuestas[i] }));
+      const { error } = await supabase.from('postulaciones').insert({ candidato_id: user.id, vacante_id: v.id, estado: 'recibido', respuestas: respuestasObj });
+      if (!error) {
+        await supabase.from('vacantes').update({ postulantes: (v.postulantes||0)+1 }).eq('id', v.id);
+        await cargarPostulaciones();
+        await cargarVacantes();
+        setDetail({ type: 'exito', titulo: v.titulo });
+      }
+      setLoading(false);
+    }
+
+    return (
+      <div>
+        <div className="back-btn" onClick={()=>setDetail({type:'vacante',data:v})}>← Volver a la vacante</div>
+        <p style={{fontSize:16,fontWeight:500,marginBottom:4}}>Preguntas de preselección</p>
+        <p style={{fontSize:13,color:'#6b7280',marginBottom:16}}>Antes de postularte, respondé las siguientes preguntas para <strong>{v.titulo}</strong>.</p>
+        {err && <p style={{color:'red',fontSize:12,marginBottom:10}}>{err}</p>}
+        {(v.preguntas||[]).map((pregunta, i) => (
+          <div key={i} className="input-group">
+            <label>{i+1}. {pregunta}</label>
+            <textarea value={respuestas[i]} onChange={e=>{const r=[...respuestas];r[i]=e.target.value;setRespuestas(r);}} placeholder="Tu respuesta..." />
+          </div>
+        ))}
+        <button className="btn btn-primary btn-block" onClick={handleEnviar} disabled={loading}>{loading?'Enviando...':'Enviar postulación'}</button>
+      </div>
+    );
+  }
+
   function renderCandidato() {
     if (detail?.type==='vacante') return <PantallaVacanteDetalle v={detail.data} />;
     if (detail?.type==='login') return <PantallaLogin />;
+    if (detail?.type==='cuestionario') return <PantallaCuestionario v={detail.data} />;
     if (detail?.type==='exito') return (
       <div style={{textAlign:'center',padding:'52px 16px'}}>
         <div style={{width:64,height:64,background:'#E1F0F7',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',fontSize:32}}>✓</div>
@@ -529,7 +620,6 @@ function PantallaBienvenida() {
         <button className="btn btn-primary" onClick={()=>{setDetail(null);setPage('postulaciones')}}>Ver mis postulaciones</button>
       </div>
     );
-    if (page==='bienvenida') return <PantallaBienvenida />;
     if (page==='vacantes') return <PantallaVacantes />;
     if (page==='postulaciones') return <PantallaPostulaciones />;
     return <PantallaPerfil />;
